@@ -1,0 +1,10 @@
+{
+  "name": "warehouse-cad",
+  "version": "1.0.0",
+  "description": "Browser-based 2D CAD for warehouse layouts with DXF, PDF, SVG and PNG export.",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}

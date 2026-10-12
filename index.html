@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Warehouse CAD</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo" aria-hidden="true"></span>Warehouse CAD</div>
+    <input id="projName" class="proj-name" type="text" maxlength="80" aria-label="Project name" spellcheck="false">
+    <div class="group">
+      <button id="btnNew" title="New project">New</button>
+      <button id="btnOpen" title="Open project (Ctrl+O)">Open</button>
+      <button id="btnSave" title="Save project as JSON (Ctrl+S)">Save</button>
+      <div class="menu-wrap">
+        <button id="btnExport" aria-haspopup="true" aria-expanded="false" title="Export drawing">Export ▾</button>
+        <div id="exportMenu" class="menu" role="menu" hidden>
+          <button role="menuitem" data-export="dxf">DXF (AutoCAD R12)</button>
+          <button role="menuitem" data-export="pdf">PDF print layout…</button>
+          <button role="menuitem" data-export="svg">SVG vector</button>
+          <button role="menuitem" data-export="png">PNG image</button>
+        </div>
+      </div>
+    </div>
+    <div class="group">
+      <button id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
+      <button id="btnRedo" title="Redo (Ctrl+Shift+Z)">Redo</button>
+    </div>
+    <div class="group">
+      <label class="inline">Units
+        <select id="selUnits"><option value="metric">Metric (m)</option><option value="imperial">Imperial (ft)</option></select>
+      </label>
+      <label class="inline">Snap <select id="selSnap"></select></label>
+      <button id="btnGrid" class="toggle on" title="Show grid (G)">Grid</button>
+      <button id="btnOrtho" class="toggle on" title="Ortho mode (F8). Hold Shift to invert.">Ortho</button>
+      <button id="btnFit" title="Zoom to fit (Home)">Fit</button>
+      <button id="btnHelp" title="Keyboard shortcuts (?)">?</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <nav id="tools" class="toolbar" aria-label="Drawing tools"></nav>
+    <div id="canvasWrap" class="canvas-wrap">
+      <canvas id="cv" tabindex="0" aria-label="Warehouse drawing"></canvas>
+    </div>
+    <aside class="panel">
+      <section>
+        <h2 id="propsTitle">Properties</h2>
+        <div id="props"></div>
+      </section>
+      <section>
+        <h2>Layers</h2>
+        <div id="layers" class="layers"></div>
+      </section>
+      <section>
+        <h2>Summary</h2>
+        <div id="stats" class="stats"></div>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="status">
+    <span id="stCoords">X 0.00 m  Y 0.00 m</span>
+    <span id="stHint" class="hint"></span>
+    <span id="stZoom"></span>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <input id="fileOpen" type="file" accept=".json,application/json" hidden>
+
+  <dialog id="dlgNew">
+    <form method="dialog" class="dlg">
+      <h3>New warehouse</h3>
+      <label>Project name <input name="name" type="text" maxlength="80" value="New warehouse"></label>
+      <label>Units
+        <select name="units"><option value="metric">Metric (m)</option><option value="imperial">Imperial (ft)</option></select>
+      </label>
+      <label class="check"><input name="shell" type="checkbox" checked> Create building shell</label>
+      <div class="row2">
+        <label>Width <span class="u"></span><input name="width" type="number" step="any" min="1" value="72"></label>
+        <label>Length <span class="u"></span><input name="length" type="number" step="any" min="1" value="48"></label>
+      </div>
+      <div class="row2">
+        <label>Wall thickness <span class="u"></span><input name="thick" type="number" step="any" min="0.05" value="0.2"></label>
+        <label>Dock doors (front wall) <input name="docks" type="number" step="1" min="0" max="60" value="6"></label>
+      </div>
+      <p class="note">Your current drawing will be replaced. You can undo this.</p>
+      <menu><button value="ok" class="primary">Create</button><button value="cancel" formnovalidate>Cancel</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="dlgLayout">
+    <form method="dialog" class="dlg wide">
+      <h3>Racking auto-layout</h3>
+      <div id="layoutFields" class="grid2"></div>
+      <p id="layoutSummary" class="summary"></p>
+      <menu><button value="ok" class="primary">Place racks</button><button value="cancel" formnovalidate>Cancel</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="dlgPdf">
+    <form method="dialog" class="dlg">
+      <h3>PDF print layout</h3>
+      <div class="row2">
+        <label>Sheet <select name="sheet"></select></label>
+        <label>Scale <select name="scale"></select></label>
+      </div>
+      <label>Title <input name="title" type="text" maxlength="80"></label>
+      <label>Subtitle <input name="subtitle" type="text" maxlength="100" value="Warehouse layout plan"></label>
+      <div class="row2">
+        <label>Drawn by <input name="drawnBy" type="text" maxlength="30"></label>
+        <label>Revision <input name="revision" type="text" maxlength="8" value="A"></label>
+      </div>
+      <label>Date <input name="date" type="text" maxlength="20"></label>
+      <menu><button value="ok" class="primary">Export PDF</button><button value="cancel" formnovalidate>Cancel</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="dlgHelp">
+    <form method="dialog" class="dlg wide">
+      <h3>Keyboard shortcuts</h3>
+      <div class="help-grid">
+        <div><h4>Tools</h4>
+          <dl>
+            <dt>V</dt><dd>Select</dd><dt>H</dt><dd>Pan</dd><dt>W</dt><dd>Wall</dd><dt>B</dt><dd>Room (4 walls)</dd>
+            <dt>C</dt><dd>Column</dd><dt>D</dt><dd>Door</dd><dt>O</dt><dd>Overhead door</dd><dt>K</dt><dd>Dock door</dd>
+            <dt>S</dt><dd>Rack</dd><dt>L</dt><dd>Racking auto-layout</dd><dt>Z</dt><dd>Zone</dd><dt>F</dt><dd>Flow arrow</dd>
+            <dt>M</dt><dd>Dimension</dd><dt>T</dt><dd>Text</dd><dt>E</dt><dd>Measure</dd>
+          </dl>
+        </div>
+        <div><h4>Editing</h4>
+          <dl>
+            <dt>Ctrl+Z / Ctrl+Shift+Z</dt><dd>Undo / redo</dd><dt>Ctrl+D</dt><dd>Duplicate</dd><dt>Ctrl+A</dt><dd>Select all</dd>
+            <dt>Del</dt><dd>Delete selection</dd><dt>R</dt><dd>Rotate 90° (flip door while placing)</dd>
+            <dt>Arrows</dt><dd>Nudge by snap (Shift ×10)</dd><dt>Esc / right-click</dt><dd>Cancel / finish chain</dd>
+            <dt>Enter</dt><dd>Finish wall chain</dd><dt>Shift</dt><dd>Invert ortho while drawing</dd>
+            <dt>Space + drag</dt><dd>Pan</dd><dt>Wheel</dt><dd>Zoom</dd><dt>Home</dt><dd>Zoom to fit</dd>
+            <dt>G / F8</dt><dd>Grid / ortho</dd><dt>Ctrl+S / Ctrl+O</dt><dd>Save / open</dd>
+          </dl>
+        </div>
+      </div>
+      <menu><button value="ok" class="primary">Close</button></menu>
+    </form>
+  </dialog>
+
+  <script src="js/core.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
