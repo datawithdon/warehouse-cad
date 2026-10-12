@@ -11,7 +11,7 @@ Open `index.html` in a modern browser (Chrome, Edge, Firefox, or Safari). That's
 You can also serve the folder statically, for example:
 
 ```sh
-python3 -m http.server 8000   # then open http://localhost:8000
+python3 -m http.server 8000 --bind 127.0.0.1   # then open http://127.0.0.1:8000
 ```
 
 It also works as-is on GitHub Pages.
